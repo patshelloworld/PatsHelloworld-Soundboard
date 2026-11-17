@@ -19,7 +19,7 @@ Keep the pairing link and QR code private. They let people on your network trigg
 - Select a pad in the Mac app and click **Customize**. Choose an audio file, edit the label and icon, or set the volume. **Preview** plays it on the Mac. **Restore Default** restores the original sound and settings for that pad.
 - To load a collection at once, put a folder named `sounds` next to the `.app` and relaunch. The folder accepts MP3, WAV, M4A, AAC, AIF, AIFF, CAF, and FLAC. The app adds pads when the folder contains more than 15 compatible files. Saved customizations take precedence on their pads.
 
-The clips in the original local `sounds` collection were downloaded from [Myinstants](https://www.myinstants.com/en/index/us/). The public download includes 15 synthesized starter effects. To load your own collection, follow the [sounds folder instructions](sounds/README.md).
+The MP3s in this repository’s [`sounds`](sounds/) folder were downloaded from [Myinstants](https://www.myinstants.com/en/index/us/). To use those clips, download or clone the repository and copy its `sounds` folder next to the `.app`, then relaunch. The Mac release ZIP includes 15 synthesized starter effects.
 
 ## OBS setup
 

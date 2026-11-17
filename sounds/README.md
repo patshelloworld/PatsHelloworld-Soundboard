@@ -1,5 +1,5 @@
 # Sounds folder
 
-The clips in the original local collection were downloaded from [Myinstants](https://www.myinstants.com/en/index/us/). The app download includes 15 synthesized starter effects.
+The MP3s in this folder were downloaded from [Myinstants](https://www.myinstants.com/en/index/us/).
 
-To load your own collection, create a folder named `sounds` beside `PatsHelloworld-Soundboard.app`. Add your audio files and relaunch the Mac app. The soundboard loads the folder at startup. You can also use **Customize** in the Mac app to assign a file to a specific pad.
+To use the clips, download or clone this repository. Copy the `sounds` folder next to `PatsHelloworld-Soundboard.app` and relaunch the Mac app. You can add your own audio files to the folder or use **Customize** to assign a file to a specific pad.
