@@ -3,7 +3,8 @@ __pycache__/
 *.app/
 *.zip
 /Source/build/
-/sounds/
+/sounds/*
+!/sounds/README.md
 /.soundboard-*/
 /.env*
 *.p12
