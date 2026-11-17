@@ -1,0 +1,11 @@
+.DS_Store
+__pycache__/
+*.app/
+*.zip
+/Source/build/
+/sounds/
+/.soundboard-*/
+/.env*
+*.p12
+*.mobileprovision
+connection.json

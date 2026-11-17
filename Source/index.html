@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#111510">
+<link rel="apple-touch-icon" href="touch.png">
+<title>Pat's Soundboard</title>
+<style>
+  :root { color-scheme: dark; background: #111510; color: #f6f8ef; font-family: ui-monospace, Menlo, monospace; }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  main { margin: auto; max-width: 520px; padding: max(17px, env(safe-area-inset-top)) 16px max(14px, env(safe-area-inset-bottom)); }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+  h1 { font-size: clamp(20px, 5.7vw, 27px); margin: 0; letter-spacing: -.06em; }
+  .brand { color: #c4fc77; font-size: 11px; margin: 0 0 5px; }
+  button { cursor: pointer; touch-action: manipulation; font: inherit; color: inherit; }
+  button:focus-visible { outline: 2px solid #c4fc77; outline-offset: 2px; }
+  #stop { padding: 11px; border: 1px solid #815b52; color: #ffb9a6; background: #2a211d; border-radius: 9px; white-space: nowrap; font-size: 12px; }
+  #pads { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .pad { display: grid; place-content: center; justify-items: center; gap: 7px; min-height: clamp(63px, 13dvh, 104px); padding: 6px; border: 1px solid #3c4b31; border-radius: 11px; background: #21291c; text-align: center; }
+  .pad:active, .pad.played { background: #c4fc77; border-color: #c4fc77; color: #18210e; }
+  .name { font-size: clamp(10px, 3vw, 13px); font-weight: 700; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  .icon { font-size: 23px; line-height: 1; }
+  .icon:empty { display: none; }
+  .views { display: flex; gap: 8px; margin-bottom: 13px; }
+  .views button, .obs-action, .scene { min-height: 44px; border: 1px solid #3c4b31; border-radius: 9px; background: #21291c; padding: 9px 12px; font-size: 13px; }
+  .views button[aria-pressed="true"], .scene[aria-current="true"] { background: #c4fc77; border-color: #c4fc77; color: #18210e; }
+  .obs-action:disabled, .scene:disabled { opacity: .55; cursor: default; }
+  #scenes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .scene { min-height: 62px; overflow-wrap: anywhere; }
+  .obs-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  #record[data-recording] { color: #ffb9a6; border-color: #815b52; background: #2a211d; }
+  #mic-name { font-size: 12px; margin: 8px 0 0; color: #c2cbbb; overflow-wrap: anywhere; }
+  #status, #obs-status { color: #c2cbbb; margin: 12px 0 0; font-size: 12px; min-height: 2em; }
+  #status[data-error], #obs-status[data-error] { color: #ffb9a6; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div><p class="brand">PATSHELLOWORLD</p><h1>Soundboard</h1></div>
+    <button id="stop" type="button" disabled>Stop all</button>
+  </header>
+  <nav class="views" aria-label="Remote controls">
+    <button id="sounds-view" type="button" aria-pressed="true" aria-controls="sounds-panel">Sounds</button>
+    <button id="obs-view" type="button" aria-pressed="false" aria-controls="obs-panel">OBS</button>
+  </nav>
+  <section id="sounds-panel" aria-label="Sounds">
+    <div id="pads"></div>
+    <p id="status" role="status">Connecting to Mac…</p>
+  </section>
+  <section id="obs-panel" aria-label="OBS controls" hidden>
+    <div id="scenes" aria-label="OBS scenes"></div>
+    <div class="obs-actions">
+      <button id="mic" class="obs-action" type="button" disabled>Mute mic</button>
+      <button id="record" class="obs-action" type="button" disabled>Start recording</button>
+    </div>
+    <p id="mic-name"></p>
+    <p id="obs-status" role="status">Connecting to OBS…</p>
+  </section>
+</main>
+<script>
+const pads = document.querySelector('#pads');
+const status = document.querySelector('#status');
+const stop = document.querySelector('#stop');
+let action = 0;
+let padSnapshot = '';
+
+function showStatus(message, error = false) {
+  status.textContent = message;
+  status.toggleAttribute('data-error', error);
+}
+
+async function request(path, options = {}, timeout = 3500) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    return await fetch(path, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function send(path, message, button) {
+  const ticket = ++action;
+  try {
+    const response = await request(path, {
+      method: 'POST',
+      headers: { 'X-Soundboard': 'play' }
+    });
+    if (!response.ok) throw new Error(response.status);
+    if (ticket === action) showStatus(message);
+    if (button) {
+      button.classList.add('played');
+      clearTimeout(button.flashTimer);
+      button.flashTimer = setTimeout(() => button.classList.remove('played'), 270);
+    }
+  } catch (error) {
+    if (ticket !== action) return;
+    showStatus(error.message === '500' ? 'The Mac could not play that sound.' : 'Cannot reach the Mac. Check Wi-Fi and the Mac app.', true);
+  }
+}
+
+async function load() {
+  const currentAction = action;
+  try {
+    const response = await request('pads');
+    if (!response.ok) throw new Error(response.status);
+    const sounds = await response.json();
+    const snapshot = JSON.stringify(sounds);
+    if (snapshot !== padSnapshot) {
+      pads.replaceChildren(...sounds.map((sound, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'pad';
+        const icon = document.createElement('span');
+        icon.className = 'icon';
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = sound.icon;
+        const name = document.createElement('span');
+        name.className = 'name';
+        name.textContent = sound.name;
+        button.append(icon, name);
+        button.addEventListener('click', () => send('play/' + index, 'Played ' + sound.name, button));
+        return button;
+      }));
+      padSnapshot = snapshot;
+    }
+    stop.disabled = false;
+    if (currentAction === action && (action === 0 || status.hasAttribute('data-error'))) showStatus('Connected to Mac');
+  } catch {
+    if (currentAction === action) showStatus('Cannot reach the Mac. Check Wi-Fi and the Mac app.', true);
+  }
+}
+stop.addEventListener('click', () => send('stop', 'Stopped all sounds'));
+const obsView = document.querySelector('#obs-view');
+const soundsView = document.querySelector('#sounds-view');
+const obsPanel = document.querySelector('#obs-panel');
+const soundsPanel = document.querySelector('#sounds-panel');
+const obsStatus = document.querySelector('#obs-status');
+const scenes = document.querySelector('#scenes');
+const mic = document.querySelector('#mic');
+const micName = document.querySelector('#mic-name');
+const record = document.querySelector('#record');
+let obsActive = false;
+let obsState = null;
+let obsPending = false;
+let obsLoading = false;
+let obsRevision = 0;
+let sceneSnapshot = '';
+
+function showOBSStatus(message, error = false) {
+  obsStatus.textContent = message;
+  obsStatus.toggleAttribute('data-error', error);
+}
+
+function renderOBS() {
+  const list = obsState?.scenes ?? [];
+  const snapshot = JSON.stringify(list);
+  if (snapshot !== sceneSnapshot) {
+    scenes.replaceChildren(...list.map(name => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'scene';
+      button.textContent = name;
+      button.addEventListener('click', () => changeOBS('obs/scene/name=' + encodeURIComponent(name), 'Switched to ' + name));
+      return button;
+    }));
+    sceneSnapshot = snapshot;
+  }
+  for (const button of scenes.children) {
+    button.setAttribute('aria-current', String(button.textContent === obsState?.currentScene));
+    button.disabled = obsPending;
+  }
+  mic.disabled = obsPending || typeof obsState?.muted !== 'boolean';
+  mic.textContent = obsState?.muted ? 'Unmute mic' : 'Mute mic';
+  micName.textContent = obsState
+    ? (obsState.microphone && typeof obsState.muted === 'boolean' ? obsState.microphone : 'Set the mic input name in OBS Settings on the Mac.')
+    : '';
+  record.disabled = obsPending || typeof obsState?.recording !== 'boolean';
+  record.textContent = obsState?.recording ? 'Stop recording' : 'Start recording';
+  record.toggleAttribute('data-recording', Boolean(obsState?.recording));
+}
+
+async function obsRequest(path, options) {
+  const response = await request(path, options, 5000);
+  if (response.status === 204) return null;
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'OBS did not complete the request.');
+  return data;
+}
+
+async function loadOBS(message) {
+  if (!obsActive || obsLoading || obsPending) return;
+  obsLoading = true;
+  const revision = obsRevision;
+  try {
+    const state = await obsRequest('obs');
+    if (revision !== obsRevision) return;
+    obsState = state;
+    showOBSStatus(message || (state.currentScene ? 'Program: ' + state.currentScene : 'Connected to OBS'));
+  } catch (error) {
+    if (revision !== obsRevision) return;
+    obsState = null;
+    showOBSStatus(error instanceof TypeError || error.name === 'AbortError'
+      ? 'Cannot reach the Mac soundboard.' : error.message, true);
+  } finally {
+    obsLoading = false;
+    if (revision === obsRevision) renderOBS();
+  }
+}
+
+async function changeOBS(path, message) {
+  if (obsPending || !obsState) return;
+  obsRevision++;
+  obsPending = true;
+  renderOBS();
+  try {
+    await obsRequest(path, { method: 'POST', headers: { 'X-Soundboard': 'play' } });
+    showOBSStatus(message);
+    obsPending = false;
+    await loadOBS(message);
+  } catch (error) {
+    showOBSStatus(error instanceof TypeError || error.name === 'AbortError'
+      ? 'Check OBS on the Mac before retrying.' : error.message, true);
+  } finally {
+    obsPending = false;
+    renderOBS();
+  }
+}
+
+function selectView(showOBS) {
+  obsActive = showOBS;
+  obsPanel.hidden = !showOBS;
+  soundsPanel.hidden = showOBS;
+  stop.hidden = showOBS;
+  obsView.setAttribute('aria-pressed', String(showOBS));
+  soundsView.setAttribute('aria-pressed', String(!showOBS));
+  if (showOBS) loadOBS();
+  else load();
+}
+
+soundsView.addEventListener('click', () => selectView(false));
+obsView.addEventListener('click', () => selectView(true));
+mic.addEventListener('click', () => {
+  const command = obsState?.muted ? 'unmute' : 'mute';
+  changeOBS('obs/mic/' + command, command === 'mute' ? 'Mic muted' : 'Mic unmuted');
+});
+record.addEventListener('click', () => {
+  const active = obsState?.recording;
+  if (typeof active !== 'boolean' || !window.confirm(active ? 'Stop OBS recording?' : 'Start recording in OBS?')) return;
+  changeOBS('obs/record/' + (active ? 'stop' : 'start'), active ? 'Recording stopped' : 'Recording started');
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) obsActive ? loadOBS() : load();
+});
+setInterval(() => { if (!document.hidden && !obsActive) load(); }, 8000);
+setInterval(() => { if (!document.hidden && obsActive) loadOBS(); }, 3000);
+load();
+</script>
+</body>
+</html>

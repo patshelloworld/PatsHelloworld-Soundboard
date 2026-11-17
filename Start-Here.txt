@@ -1,0 +1,61 @@
+PATSHELLOWORLD SOUNDBOARD
+
+1. Unzip the download and move PatsHelloworld-Soundboard.app to
+   Applications. Open it on your Mac. If asked about the developer, see
+   https://support.apple.com/en-us/102445 for macOS launch options.
+2. Put your iPhone and Mac on the same Wi-Fi. If macOS asks for local
+   network access, allow it so the iPhone can reach the app.
+3. Scan the QR code with the iPhone camera and open the page in Safari.
+   Tap a pad. The Mac plays the sound through its selected audio output.
+4. In Safari, use Share > Add to Home Screen for quick access. Keep the
+   Mac app open while you use the soundboard. You can minimize the window.
+
+LOAD YOUR SOUNDS FOLDER
+The app comes with 15 sounds. Place a folder named sounds next to
+PatsHelloworld-Soundboard.app to load audio files from that folder.
+Bundled sounds fill any remaining pads. The board adds pads as needed
+when the folder has more audio files. Relaunch the Mac app after
+changing the folder contents.
+Sounds you assign with Customize take priority on those pads.
+For an existing install, quit the app and replace only the .app file
+with the updated one. Keep your existing sounds folder in place.
+
+CUSTOMIZE A BUTTON
+Select a pad on the Mac and click Customize. You can choose a WAV, MP3,
+or other audio file, change the button name and icon, and set its volume.
+Use Preview to hear your changes on the Mac before you save. The iPhone
+updates automatically within a few seconds. Restore Default resets that
+button to its sounds-folder or bundled sound and original settings.
+
+CAPTURE SOUNDBOARD AUDIO IN OBS
+In OBS Studio 30 or later, add a macOS Audio Capture source and choose
+PatsHelloworld Soundboard as the application. Make a short local recording
+while you tap a pad and play it back to check the level. If you already
+capture all desktop audio, check that the sound enters the mix only once.
+
+CONTROL OBS FROM THE IPHONE
+1. Open OBS Studio 28 or later. In Tools > WebSocket Server Settings,
+   enable the server and keep authentication on. Copy its port and
+   password (the default port is 4455).
+2. In the Mac soundboard, click OBS Settings and enter those details.
+   To mute a custom microphone source, enter its exact name from the
+   OBS Audio Mixer. Leave it blank to use the first enabled Mic/Aux.
+3. Open the paired phone page and tap OBS. Tap a scene to take it
+   directly to Program, or use the mic and recording buttons.
+   Starting or stopping a recording asks for confirmation.
+
+The OBS password stays on the Mac. Keep your phone pairing link private
+because it can control OBS on your local network.
+
+IF THE PHONE CANNOT CONNECT
+Try Open on Mac to check the board locally. Check that both devices are
+on the same Wi-Fi and allow local network access for the app if prompted.
+If the Mac link works locally but the iPhone cannot resolve the .local
+name, replace the hostname in the pairing URL with the Mac's Wi-Fi IP
+address. Keep the port and the full path. Guest Wi-Fi may block connections
+between devices.
+
+The release download supports Apple silicon and Intel Macs running
+macOS 13 or later. The app is ad hoc signed and has no Apple notarization.
+Source and build instructions are available on GitHub at
+https://github.com/patshelloworld/PatsHelloworld-Soundboard
